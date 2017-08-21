@@ -14,6 +14,7 @@
    along with RTags.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "CompletionThread.h"
+#include "IndexDataMessage.h"
 #include "Project.h"
 
 #include "rct/StopWatch.h"
@@ -401,6 +402,7 @@ void CompletionThread::process(Request *request)
             error() << "No completion results available" << request->location;
         }
 
+        processDiagnostics(results, cache->translationUnit->unit);
         clang_disposeCodeCompleteResults(results);
     }
 }
@@ -671,4 +673,53 @@ Source CompletionThread::findSource(const Set<uint32_t> &deps) const
         }
     }
     return Source();
+}
+
+class CompletionDiagnostics : public RTags::DiagnosticsProvider
+{
+public:
+    CompletionDiagnostics(CXCodeCompleteResults *results, CXTranslationUnit unit)
+        : mResults(results), mUnit(unit)
+    {}
+
+    virtual size_t unitCount() const override
+    {
+        return 1;
+    }
+    virtual size_t diagnosticCount(size_t) const override
+    {
+    }
+    virtual CXDiagnostic diagnostic(size_t, size_t idx) const override
+    {
+
+
+    }
+    virtual Location createLocation(const Path &file, unsigned int line, unsigned int col, bool *blocked = 0) override
+    {
+
+
+    }
+    virtual uint32_t sourceFileId() const override
+    {
+
+    }
+    virtual IndexDataMessage &indexDataMessage() override
+    {
+        return mIndexDataMessage;
+    }
+
+    virtual CXTranslationUnit unit(size_t) const override
+    {
+        return mUnit;
+    }
+
+    CXCodeCompleteResults *mResults;
+    CXTranslationUnit mUnit;
+    IndexDataMessage mIndexDataMessage;
+};
+
+void CompletionThread::processDiagnostics(CXCodeCompleteResults *results, CXTranslationUnit unit)
+{
+    CompletionDiagnostics diag(results, unit);
+    diag.diagnose();
 }
